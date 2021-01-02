@@ -1,0 +1,32 @@
+{
+  "name": "Google Meet Websockets",
+  "version": "1.0",
+  "manifest_version": 2,
+  "description": "A websockets interface to Google Meet, allowing real-time status and control of meetings.",
+  "homepage_url": "https://github.com/mic-tech/google-meet-websockets-extension",
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "background": {
+    "scripts": ["src/background.js"],
+    "persistent": false
+  },
+  "browser_action": {
+    "default_icon": {
+      "16": "icons/16.png",
+      "24": "icons/24.png",
+      "32": "icons/32.png"
+    },
+    "default_title": "Google Meet Websockets"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://meet.google.com/*"],
+      "js": ["src/content.js", "src/commands.js"]
+    }
+  ],
+  "options_page": "src/options/index.html",
+  "permissions": ["activeTab", "tabs", "storage", "*://meet.google.com/*"]
+}
