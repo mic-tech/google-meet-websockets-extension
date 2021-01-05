@@ -802,3 +802,11 @@ function commandStartNewMeeting(meetingNick = null) {
     );
   }
 }
+
+function commandFullscreen() {
+  chrome.runtime.sendMessage("enterFullscreen");
+}
+
+function commandExitFullscreen() {
+  chrome.runtime.sendMessage("exitFullscreen");
+}

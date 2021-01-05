@@ -1,6 +1,6 @@
 {
   "name": "Google Meet Websockets",
-  "version": "1.0",
+  "version": "0.0.1",
   "manifest_version": 2,
   "description": "A websockets interface to Google Meet, allowing real-time status and control of meetings.",
   "homepage_url": "https://github.com/mic-tech/google-meet-websockets-extension",
@@ -28,5 +28,5 @@
     }
   ],
   "options_page": "src/options/index.html",
-  "permissions": ["activeTab", "tabs", "storage", "*://meet.google.com/*"]
+  "permissions": ["tabs", "storage", "*://meet.google.com/*"]
 }

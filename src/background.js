@@ -33,5 +33,25 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
         }
       }
     });
+  } else if (message == "enterFullscreen") {
+    chrome.windows.getCurrent(function (curWindow) {
+      if (
+        curWindow.state &&
+        curWindow.state != "fullscreen" &&
+        curWindow.state != "locked-fullscreen"
+      ) {
+        chrome.windows.update(curWindow.id, { state: "fullscreen" });
+      }
+    });
+  } else if (message == "exitFullscreen") {
+    chrome.windows.getCurrent(function (curWindow) {
+      if (
+        curWindow.state &&
+        (curWindow.state == "fullscreen" ||
+          curWindow.state == "locked-fullscreen")
+      ) {
+        chrome.windows.update(curWindow.id, { state: "normal" });
+      }
+    });
   }
 });
