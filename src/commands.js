@@ -331,7 +331,7 @@ function commandDenyAll() {
   _joinRequestAdmitDeny("deny");
 }
 
-function commandToggleTile() {
+function commandToggleTiled() {
   if (state.page !== "meeting-active") return;
 
   let _elmBtn = document.querySelector(
@@ -349,14 +349,14 @@ function commandToggleTile() {
   }
 }
 
-function commandTileOn() {
+function commandTiledOn() {
   if (state.page !== "meeting-active" || state.meeting.selfTiled) return;
   commandToggleTile();
 }
 
-function commandTileOff() {
+function commandTiledOff() {
   if (state.page !== "meeting-active" || !state.meeting.selfTiled) return;
-  commandToggleTile();
+  commandToggleTiled();
 }
 
 function _findParticipantElementById(participantId) {
@@ -809,4 +809,8 @@ function commandFullscreen() {
 
 function commandExitFullscreen() {
   chrome.runtime.sendMessage("exitFullscreen");
+}
+
+function commandDebugState() {
+  console.log(state);
 }

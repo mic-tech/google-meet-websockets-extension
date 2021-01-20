@@ -3,9 +3,9 @@ var wsClient = null;
 var wsIsConnected = false;
 
 var state = {
-  dialogs: new Map(),
+  dialogs: {},
   tabId: null,
-  meetingsToday: new Map(),
+  meetingsToday: {},
   meeting: {
     id: null,
     myId: null,
@@ -25,7 +25,7 @@ var state = {
     handRaised: false,
     captionsEnabled: false,
     chat: [],
-    participants: new Map(),
+    participants: {},
     joinRequest: null,
     selfTiled: false,
     participantPinned: null,
@@ -321,35 +321,50 @@ function parseMeetingParticipants() {
       _pFound.set(_pId, true);
 
       // does participant exist already?
-      if (!state.meeting.participants.has(_pId)) {
+      if (!state.meeting.participants.hasOwnProperty(_pId)) {
         // nope, just joined
         _pJoined.set(_pId, _pObj);
-        state.meeting.participants.set(_pId, _pObj);
+        state.meeting.participants[_pId] = _pObj;
       } else {
         // check for changes
-        let _pExisting = state.meeting.participants.get(_pId);
-        if (
-          _pExisting.name !== _pObj.name ||
-          _pExisting.muted !== _pObj.muted ||
-          _pExisting.pic !== _pObj.pic
-        ) {
-          _pChanged.set(_pId, true);
-          _pExisting.name = _pObj.name;
-          _pExisting.muted = _pObj.muted;
-          _pExisting.pic = _pObj.pic;
-          state.meeting.participants.set(_pId, _pExisting);
+        let _pExisting = state.meeting.participants[_pId];
+        if (_pObj.isSelf) {
+          if (_pExisting.name !== _pObj.name || _pExisting.pic !== _pObj.pic) {
+            _pChanged.set(_pId, true);
+            _pExisting.name = _pObj.name;
+            _pExisting.pic = _pObj.pic;
+            state.meeting.participants[_pId] = _pExisting;
+          }
+        } else {
+          if (
+            _pExisting.name !== _pObj.name ||
+            _pExisting.muted !== _pObj.muted ||
+            _pExisting.pic !== _pObj.pic
+          ) {
+            _pChanged.set(_pId, true);
+            _pExisting.name = _pObj.name;
+            _pExisting.muted = _pObj.muted;
+            _pExisting.pic = _pObj.pic;
+            state.meeting.participants[_pId] = _pExisting;
+          }
         }
       }
     }
 
     // notify participants left
-    for (const [_k, _v] of state.meeting.participants.entries()) {
+    let _v = null;
+    for (let _k in state.meeting.participants) {
+      _v = state.meeting.participants[_k];
       if (!_pFound.has(_k)) {
         console.log(_v.name + " left");
         wsSend("participantLeft", _v);
-        state.meeting.participants.delete(_k);
+        delete state.meeting.participants[_k];
       } else if (_pChanged.has(_k)) {
-        if (!_v.isSelf) {
+        if (_v.isSelf) {
+          console.log("our info changed");
+          console.log(_v);
+          wsSend("selfChanged", _v);
+        } else {
           console.log(_v.name + " changed");
           console.log(_v);
           wsSend("participantChanged", _v);
@@ -359,7 +374,11 @@ function parseMeetingParticipants() {
 
     // notify joined
     for (const [_k, _v] of _pJoined.entries()) {
-      if (!_v.isSelf) {
+      if (_v.isSelf) {
+        console.log("we joined the meeting");
+        console.log(_v);
+        wsSend("selfJoined", _v);
+      } else {
         console.log(_v.name + " joined");
         console.log(_v);
         wsSend("participantJoined", _v);
@@ -382,11 +401,13 @@ function parseMeetingParticipants() {
     }
   }
   // notify change of raised hands
-  for (let [_k, _v] of state.meeting.participants.entries()) {
+  let _v = null;
+  for (let _k in state.meeting.participants) {
+    _v = state.meeting.participants[_k];
     if (_pFound.has(_k)) {
       if (!_v.handRaised) {
         _v.handRaised = true;
-        state.meeting.participants.set(_k, _v);
+        state.meeting.participants[_k] = _v;
         if (_v.isSelf) {
           state.meeting.handRaised = true;
           wsSend("handRaisedChanged", state.meeting.handRaised);
@@ -398,7 +419,7 @@ function parseMeetingParticipants() {
     } else {
       if (_v.handRaised) {
         _v.handRaised = false;
-        state.meeting.participants.set(_k, _v);
+        state.meeting.participants[_k] = _v;
         if (_v.isSelf) {
           state.meeting.handRaised = false;
           wsSend("handRaisedChanged", state.meeting.handRaised);
@@ -523,9 +544,9 @@ function updateState() {
         resetObservers();
 
         // reset participants and chat messages
-        state.meeting.participants.clear();
+        state.meeting.participants = {};
         state.meeting.chat = [];
-        state.dialogs.clear();
+        state.dialogs = {};
         state.meeting.joinRequest = null;
 
         // get meeting code if haven't gotten already
@@ -690,9 +711,9 @@ function updateState() {
         resetObservers();
 
         // reset meeting session state
-        state.meeting.participants.clear();
+        state.meeting.participants = {};
         state.meeting.chat = [];
-        state.dialogs.clear();
+        state.dialogs = {};
         state.meeting.joinRequest = null;
 
         // setup observers
@@ -796,9 +817,9 @@ function updateState() {
       ) {
         // reset
         resetObservers();
-        state.meeting.participants.clear();
+        state.meeting.participants = {};
         state.meeting.chat = [];
-        state.dialogs.clear();
+        state.dialogs = {};
         state.meeting.joinRequest = null;
       }
 
@@ -1003,7 +1024,7 @@ function updateState() {
         }
 
         _dFound.set(_dialogTitle, true);
-        if (state.dialogs.has(_dialogTitle)) {
+        if (state.dialogs.hasOwnProperty(_dialogTitle)) {
           continue;
         } else {
           let _dialogCloseBtn = null;
@@ -1035,14 +1056,14 @@ function updateState() {
             }
           }
 
-          state.dialogs.set(_dialogTitle, {
+          state.dialogs[_dialogTitle] = {
             title: _dialogTitle,
             text: _dialog.innerText,
             closeButton: _dialogCloseBtn,
-          });
+          };
 
           // notify dialog shown
-          wsSend("dialogShown", state.dialogs.get(_dialogTitle));
+          wsSend("dialogShown", state.dialogs[_dialogTitle]);
           console.log("Dialog shown: " + _dialogTitle);
 
           // grab meeting joining info from "Add others" dialog
@@ -1071,12 +1092,14 @@ function updateState() {
       }
 
       // notify dialog closed
-      for (const [_k, _v] of state.dialogs) {
+      let _v = null;
+      for (let _k in state.dialogs) {
         if (!_dFound.has(_k)) {
           // dialog closed
+          _v = state.dialogs[_k];
           wsSend("dialogClosed", _v);
-          state.dialogs.delete(_k);
           console.log("Dialog closed: " + _v.title);
+          delete state.dialogs[_k];
         }
       }
 
@@ -1097,14 +1120,14 @@ function updateState() {
             document.querySelector('[role="button"][aria-label="Remove tile"]')
           ) {
             state.meeting.selfTiled = true;
-            wsSend("tiledChanged", self.meeting.selfTiled);
+            wsSend("tiledChanged", state.meeting.selfTiled);
             console.log("we are now tiled in the display");
           }
         } else if (
           document.querySelector('[role="button"][aria-label="Show in a tile"]')
         ) {
           state.meeting.selfTiled = false;
-          wsSend("tiledChanged", self.meeting.selfTiled);
+          wsSend("tiledChanged", state.meeting.selfTiled);
           console.log("we are no longer tiled in the display");
         }
 
@@ -1223,15 +1246,15 @@ function updateState() {
                     ? parseFloat(_mBtn.getAttribute("data-end-time"))
                     : null;
 
-                  if (state.meetingsToday.has(_mId)) {
+                  if (state.meetingsToday.hasOwnProperty(_mId)) {
                     // update existing
-                    let _existingMeeting = state.meetingsToday.get(_mId);
+                    let _existingMeeting = state.meetingsToday[_mId];
                     if (
                       _existingMeeting.name !== _mObj.name ||
                       _existingMeeting.beginTime !== _mObj.beginTime ||
                       _existingMeeting.endTime !== _mObj.endTime
                     ) {
-                      state.meetingsToday.set(_mId, _mObj);
+                      state.meetingsToday[_mId] = _mObj;
                       wsSend("scheduledMeetingChanged", _mObj);
                       console.log("meeting updated:");
                       console.log(
@@ -1247,7 +1270,7 @@ function updateState() {
                     }
                   } else {
                     // new meeting
-                    state.meetingsToday.set(_mId, _mObj);
+                    state.meetingsToday[_mId] = _mObj;
 
                     wsSend("scheduledMeeting", _mObj);
 
@@ -1266,8 +1289,10 @@ function updateState() {
                 }
               }
 
-              for (let [_k, _v] of state.meetingsToday) {
+              let _v = null;
+              for (let _k in state.meetingsToday) {
                 if (!_mFound.has(_k)) {
+                  _v = state.meetingsToday[_k];
                   // meeting done/removed
                   wsSend("scheduledMeetingRemoved", _v);
                   console.log("meeting done/removed:");
@@ -1281,7 +1306,7 @@ function updateState() {
                       "\nend-time: " +
                       getDateFromTimestamp(_v.endTime)
                   );
-                  state.meetingsToday.delete(_k);
+                  delete state.meetingsToday[_k];
                 }
               }
             }
